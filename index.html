@@ -1004,6 +1004,23 @@ html, body {
     z-index: 50;
   }
 }
+
+/* ---------------- 手机竖屏：消除翻动白闪 ---------------- */
+@media (max-width: 1023px) and (orientation: portrait) {
+
+  /* 把文字块高度钉住：换帧时不再忽高忽低，图片区不再跟着伸缩 */
+  .panel__body { min-height: 152px; }
+  .panel__desc { min-height: 3.4em; }
+  .panel__title { min-height: 1.16em; }
+  .panel__meta { min-height: 1.5em; }
+
+  /* 常驻合成层，避免每次动画都晋升/回收（手机上会闪） */
+  .deck { will-change: transform; }
+  .card { will-change: transform, opacity; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+
+  /* 面板底色跟卡片一致一点，万一有一帧空隙也不刺眼 */
+  .panel { background: var(--paper); }
+}
 </style>
 </head>
 <body class="on-cover">
@@ -1406,6 +1423,20 @@ html, body {
 
   var N = cards.length;
 
+  /* 预解码：19 张图都是内嵌 data URI，但仍然要解码才能绘制。
+     不预先解码的话，某张卡第一次滑进来会先露一帧卡片底色（看起来像白闪）。 */
+  (function warmUp() {
+    cards.forEach(function (c) {
+      var im = c.querySelector('img');
+      if (!im) return;
+      if (im.decode) {
+        im.decode().catch(function () {});
+      } else if (!im.complete) {
+        im.loading = 'eager';
+      }
+    });
+  })();
+
   /* 每帧自己的小字（英文小标 / 年份·介质·地点）：分组只固定大标题与说明，
      小字始终跟着当前帧走 */
   var frameEn = [], frameMeta = [];
@@ -1507,7 +1538,7 @@ html, body {
       var d = mod(i - value + N / 2, N) - N / 2;
       var ad = Math.abs(d);
 
-      if (ad > 2.6) {
+      if (ad > 3.4) {
         if (card.style.visibility !== 'hidden') {
           card.style.visibility = 'hidden';
         }
