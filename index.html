@@ -1021,6 +1021,77 @@ html, body {
   /* 面板底色跟卡片一致一点，万一有一帧空隙也不刺眼 */
   .panel { background: var(--paper); }
 }
+
+/* ---------------- 手机竖屏：彻底消除白闪 ---------------- */
+@media (max-width: 1023px) and (orientation: portrait) {
+
+  /* ① 关掉 3D：透视、preserve-3d 在手机上最容易触发整层重绘 */
+  .stage { perspective: none !important; }
+  .deck { transform-style: flat !important; }
+  .card { will-change: auto !important; backface-visibility: visible; }
+
+  /* ② 文字区高度固定：某帧文字多一行也不会把图片区挤小 */
+  .panel {
+    height: 27svh;
+    min-height: 216px;
+    overflow: hidden;
+  }
+  .panel__body {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .panel__desc { min-height: 0; max-height: 5.2em; overflow: hidden; }
+  .panel__title, .panel__meta { min-height: 0; }
+
+  /* ③ 图片区给个实底，任何一帧空隙都不会露白 */
+  .wheel { background: var(--paper); }
+  .stage { background: var(--paper); }
+}
+
+/* ---------------- 手机竖屏：音乐按钮做成明显胶囊 ---------------- */
+@media (max-width: 1023px) and (orientation: portrait) {
+
+  .sound {
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    right: 12px;
+    width: auto;
+    min-width: 0;
+    height: 40px;
+    padding: 0 15px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    opacity: .96;
+    background: #fff;
+    border: 1px solid rgba(21, 21, 21, .18);
+    box-shadow: 0 8px 20px -12px rgba(0, 0, 0, .45);
+    z-index: 60;
+  }
+  .sound::after {
+    content: '音乐';
+    font-size: 13px;
+    letter-spacing: .04em;
+  }
+  .sound[aria-pressed="true"] {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+    opacity: 1;
+  }
+  .sound[aria-pressed="true"]::after { content: '关闭'; }
+
+  .sound-hint {
+    top: calc(60px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    right: 12px;
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+}
 </style>
 </head>
 <body class="on-cover">
@@ -1546,15 +1617,23 @@ html, body {
       }
 
       var ty = d * stride;
-      var tz = -Math.min(220, ad * 140);
-      var rx = clamp(-d * 14, -24, 24);
       var sc = 1 - Math.min(.30, ad * .12);
       var op = clamp(1 - ad * .28, .12, 1);
 
+      /* 手机竖屏不做 3D：perspective + 3D 变换在移动端最容易整层重绘（白闪） */
+      var flat = window.matchMedia('(max-width: 1023px) and (orientation: portrait)').matches;
+      var tz = flat ? 0 : -Math.min(220, ad * 140);
+      var rx = flat ? 0 : clamp(-d * 14, -24, 24);
+
       card.style.visibility = '';
-      card.style.transform =
-        'translate(-50%,-50%) translate3d(0,' + ty.toFixed(1) + 'px,' + tz.toFixed(1) + 'px) ' +
-        'rotateX(' + rx.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
+      if (flat) {
+        card.style.transform =
+          'translate(-50%,-50%) translate(0,' + ty.toFixed(1) + 'px) scale(' + sc.toFixed(3) + ')';
+      } else {
+        card.style.transform =
+          'translate(-50%,-50%) translate3d(0,' + ty.toFixed(1) + 'px,' + tz.toFixed(1) + 'px) ' +
+          'rotateX(' + rx.toFixed(2) + 'deg) scale(' + sc.toFixed(3) + ')';
+      }
       card.style.opacity = op.toFixed(3);
     }
 
